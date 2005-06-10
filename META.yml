@@ -1,0 +1,15 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         Postgres-Handler-HTML
+version:      0.5
+version_from: lib/Postgres/HTML.pm
+installdirs:  site
+requires:
+    CGI::Carp:                     0
+    CGI::Util:                     0
+    Class::Struct:                 0
+    DBI:                           0
+    Postgres::Handler:             1.1
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.28

@@ -1,0 +1,8 @@
+Changes
+lib/Postgres/HTML.pm
+Makefile.PL
+MANIFEST
+README
+t/HTML.t
+t/test.t
+META.yml                                 Module meta-data (added by MakeMaker)
