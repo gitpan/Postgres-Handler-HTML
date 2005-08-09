@@ -59,7 +59,7 @@ package Postgres::Handler::HTML;
 
 require Postgres::Handler;
 @ISA=qw(Postgres::Handler);
-$VERSION = 0.5;
+$VERSION = 0.6;
 
 #==============================================================================
 
@@ -81,6 +81,8 @@ $VERSION = 0.5;
 	LABEL			=> what to put next to the checkbox as a label (defaults to field name)
 	KEY			=>	value of the key used to lookup the data in the database
 	CHECKED		=> set to '1' to check by default if KEY not found
+	SCRIPT		=> script tags (or class tags) to add to checkbox HTML
+	NOLABEL		=> set to '1' to skip printing of label
 
  Action
  prints out the HTML Checkbox, checked if field is true
@@ -109,15 +111,19 @@ sub CheckBox() {
 	# Set defaults if not present
 	#
 	$options{CBNAME} 	||= $options{VALUE};
-	$options{LABEL}	||= $options{VALUE};
+	$options{LABEL}	||= $options{VALUE} if (!$options{NOLABEL});
 
 	# Get Data If Not Set
 	#
 	my $val = $self->Field(DATA=>"$options{TABLE}!$options{VALUE}", KEY=>$options{KEY});
 	$val = 1 if (!$val && $options{CHECKED} && !$options{KEY});
 
+	# Script/Class Optional HTML tag elements
+	#
+	my $tagmod = $options{SCRIPT};
+
 	my $selector = ($val ? 'checked' : '');
-   print qq[<input type="checkbox" value="t" name="$options{CBNAME}" $selector> $options{LABEL}];
+   print qq[<input type="checkbox" value="t" name="$options{CBNAME}" $selector $tagmod> $options{LABEL}];
 	return 1;
 }
 
@@ -325,6 +331,7 @@ sub ShowRecord(@) {
 	my $data;
 	my $temp;
 	my $dval;
+	my $fldname;
 	$options{OUTPUT} = $options{OUTPUT} || STDOUT;
 
 	# Display Order
@@ -363,15 +370,16 @@ sub ShowRecord(@) {
 
 			# Evaluate
 			#
-			if ($data =~ /^~eval\(.*\)/) {
+			if ($data =~ /^~eval\(.*\)/o) {
 				$data =~ s/^~eval\((.*)\)/$1/;
 
 				# Replace RECORD{} with field info
 				#
 				while ($data =~ /\$Record{(.*?)}/) {
-					$dval = $dRef->{$1};
+					$fldname = $1;
+					$dval = $dRef->{$fldname};
 					$dval =~ s/'/\\'/gs;
-					$data =~ s/\$Record{.*?}/'$dval'/gs;
+					$data =~ s/\$Record{$fldname}/'$dval'/gs;
 				}
 
 				# Evaluate the expression
@@ -490,6 +498,10 @@ __END__
 
 
 =head1 REVISION HISTORY
+
+ v0.6 - Jun 13 2005
+      added script option to checkbox type
+		added no label option to checkbox type
 
  v0.5 - Jun 09 2005
       moved under Postgres::Handler:: namespace
