@@ -15,6 +15,7 @@ REQUIRES
                         +- CGI::Carp
                         +- CGI::Util
                         +- Class::Struct
+                        +- DBD::Pg
                         +- DBI
 
 

@@ -1,5 +1,5 @@
 Changes
-lib/Postgres/HTML.pm
+lib/Postgres/Handler/HTML.pm
 Makefile.PL
 MANIFEST
 README
