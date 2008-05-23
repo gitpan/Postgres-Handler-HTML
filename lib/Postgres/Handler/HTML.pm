@@ -32,6 +32,20 @@ Accessors for PostgreSQL data.  Simplifies data access through a series of stand
                  hrCGIMAP=>\%cgimap
                 );
 
+=head1 EXAMPLE
+
+ #!/usr/bin/perl
+ #
+ # Connect to the postgres XYZ database owned by user1/mypass
+ # Set the primary key field for the abc table to the field named pkid
+ # Print the contents of the fldone field in the abc table where the pkid=123
+ #
+ use Postgres::Handler::HTML;
+ our $STORE = Postgres::Handler::HTML->new(dbname=>'xyz', dbuser=>'user1', dbpass=>'mypass');
+ $STORE->data('abc!PGHkeyfld'=>'pkid');
+ $STORE->ShowThe('abc!fldone',123);
+ exit(1);
+
 =head1 REQUIRES
 
 	Subclass of Postgres::Handler
@@ -41,8 +55,6 @@ Accessors for PostgreSQL data.  Simplifies data access through a series of stand
 		 +- CGI::Util
 		 +- Class::Struct
 		 +- DBI
-
-=over
 
 =cut
 #==============================================================================
@@ -56,10 +68,12 @@ Accessors for PostgreSQL data.  Simplifies data access through a series of stand
 #==============================================================================
 
 package Postgres::Handler::HTML;
+use base ("Postgres::Handler");
 
-require Postgres::Handler;
-@ISA=qw(Postgres::Handler);
-$VERSION = 0.6;
+
+#require Postgres::Handler;
+#@ISA=qw(Postgres::Handler);
+$VERSION = 1.0;
 
 #==============================================================================
 
@@ -70,7 +84,7 @@ $VERSION = 0.6;
 
 #--------------------------------------------------------------------
 
-=item CheckBox()
+=head2 CheckBox()
 
  Produce an HTML Checkbox for the specified boolean field
 
@@ -131,7 +145,7 @@ sub CheckBox() {
 
 #--------------------------------------------------------------------
 
-=item Pulldown()
+=head2 Pulldown()
 
  Produce an HTML pulldown menu for the specified table/fields
 
@@ -145,6 +159,10 @@ sub CheckBox() {
 	ORDERBY		=> special ordering, defaults to SHOW field
 	WHERE			=> filtering selection clause (without WHERE, i.e. pdclass='class1')
 	SCRIPT		=> event script, such as 'onChange="DoSumthin();"'
+	PREADD		=> address to hashref of Add-ons for begining of list
+	                  key     = the value
+							content = show
+	GROUP			=> group the data
 
  Action
  prints out the HTML pulldown
@@ -169,12 +187,13 @@ sub Pulldown() {
 	$options{SHOW}		||= $options{VALUE};
 	$options{ORDERBY} ||= $options{SHOW};
 	my $where			= ($options{WHERE} ? "WHERE $options{WHERE}" : '');
+	my $group			= ($options{GROUP} ? "GROUP BY $options{GROUP}" : '');
 
 	print qq[<select size="1" name="$options{PDNAME}" $options{SCRIPT}>];
-	if ($options{ALLOWBLANK}) { print qq[<option value="">---</option>]; }
+	print qq[<option value="">---</option>] if ($options{ALLOWBLANK});
 
 	my $selector;
-	if ( $self->PrepLEX(qq[SELECT $options{VALUE}, $options{SHOW} FROM $options{TABLE} $where ORDER BY $options{ORDERBY}]) ) {
+	if ( $self->PrepLEX(qq[SELECT $options{VALUE}, $options{SHOW} FROM $options{TABLE} $where $group ORDER BY $options{ORDERBY}]) ) {
 		while (my ($value,$show) = $self->GetRecord(-rtype=>'ARRAY')) {
 			$selector = (($value eq $options{SELECT}) ? 'selected' : '');
 			print qq[<option value="$value" $selector>$show</option>];
@@ -187,7 +206,7 @@ sub Pulldown() {
 
 #--------------------------------------------------------------------
 
-=item RadioButtons()
+=head2 RadioButtons()
 
  Produce an HTML Radio Button menu for the specified table/fields
 
@@ -218,9 +237,9 @@ sub RadioButtons() {
 
 	# Set defaults if not present
 	#
-	$options{RBNAME} 	= $options{RBNAME} 	|| $options{VALUE};
-	$options{SHOW}		= $options{SHOW}		|| $options{VALUE};
-	$options{ORDERBY} = $options{ORDERBY}	|| $options{SHOW};
+	$options{RBNAME} 	||= $options{VALUE};
+	$options{SHOW}		||= $options{VALUE};
+	$options{ORDERBY} ||= $options{SHOW};
 	my $where			= ($options{WHERE} ? "WHERE $options{WHERE}" : '');
 
 	my $selector;
@@ -233,7 +252,7 @@ sub RadioButtons() {
 
 #--------------------------------------------------------------------
 
-=item ShowHeader()
+=head2 ShowHeader()
 
  Display header for retrieved records in an HTML <table> row
 
@@ -283,7 +302,7 @@ sub ShowHeader(@) {
 
 #--------------------------------------------------------------------
 
-=item ShowRecord()
+=head2 ShowRecord()
 
  Display retrieved records in an HTML <table> row
 
@@ -409,7 +428,7 @@ sub ShowRecord(@) {
 
 #--------------------------------------------------------------------
 
-=item ValOrZero()
+=head2 ValOrZero()
 
  Set these CGI parameters to 0 if not defined.  Used for checkbox
  form variables when we want to ensure the value is set to 0 (false)
@@ -439,21 +458,34 @@ sub ValOrZero(@) {
 
 #--------------------------------------------------------------------
 
-=item ShowThe
+=head2 ShowThe
 
  Load the DB record and spit out the value of the specified field
 
- Parameters 
- [0] = field name in "table!field" format
- [1] = key value to lookup
- [2] = trim to this many characters
+=over
+
+=item Parameters 
+
+ Parameters are positional.
+
+ Required
+ <0> field name to be displayed in "table!field" format
+
+ <1> key, lookup the record based on the Postgres::Handler key
+          that has been set for this field.   Reference the
+			 Postgres::Handler->Field method for more info.
+
+ Optional
+ [2] trim to this many characters
+
+=back
 
 =cut
 sub ShowThe(@) {
 	my $self 	= shift;
-	my $retval = $self->Field(DATA=>$_[0], KEY=>$_[1]);
-	if ($_[2]) 	{ print substr($retval,0,$_[2]); }
-	else			{ print $retval; }
+	my $retval = $self->Field(DATA=>$_[0], KEY=>$_[1]) || '';
+	$retval = substr($retval,0,$_[2]) if ($_[2] && ($retval ne ''));
+	print $retval;
 }
 
 
@@ -470,34 +502,48 @@ __END__
 
 =head1 AUTHOR
 
- Lance Cleveland, Advanced Internet Technology Consultant
- Contact info@charlestonsw.com for more info.
+ Cyber Sprocket Labs, Advanced Internet Technology Consultants
+ Contact info@cybersprocket.com for more info.
 
-=head1 ABOUT CSA
+=head1 ABOUT CSL
 
- Charleston Software Associates (CSA) is and advanced internet technology
+ Cyber Sprocket Labs (CSL) is and advanced internet technology
  consulting firm based in Charleston South Carolina.   We provide custom
  software, database, and consulting services for small to mid-sized
  businesses.
 
  For more information, or to schedule a consult, visit our website at
- www.CharlestonSW.com
+ www.cybersprocket.com
 
 =head1 CONTRIBUTIONS
 
  Like the script and want to contribute?  
  You can send payments via credit card or bank transfer using
- PayPal and sending money to our info@charlestonsw.com PayPal address.
+ PayPal and sending money to our paypal@cybersprocket.com PayPal address.
 
 =head1 COPYRIGHT
 
- (c) 2005, Charleston Software Associates
+ (c) 2008, Cyber Sprocket Labs
  This script is covered by the GNU GENERAL PUBLIC LICENSE.
- View the license at http://www.charlestonsw.com/community/gpl.txt
- or at http://www.gnu.org/copyleft/gpl.html
+ View the license at http://www.gnu.org/copyleft/gpl.html
 
 
 =head1 REVISION HISTORY
+
+ v1.0 - May 2008
+      Attach to Postgres::Handler via use base() construct
+      Cleaned up perldocs
+      Build new distro so we can do routine updates
+
+ v0.9 - January 2006
+      GROUP option on Pulldown()
+		Added some docs, minor code cleanup
+
+ v0.8 - September 2005
+ 		PREADD option on Pulldown()
+
+ v0.7 - August 2005
+      minor updates
 
  v0.6 - Jun 13 2005
       added script option to checkbox type

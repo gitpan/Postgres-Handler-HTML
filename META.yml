@@ -1,15 +1,15 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         Postgres-Handler-HTML
-version:      0.6
-version_from: lib/Postgres/Handler/HTML.pm
-installdirs:  site
-requires:
-    CGI::Carp:                     0
-    CGI::Util:                     0
-    Class::Struct:                 0
-    DBI:                           0
-    Postgres::Handler:             1.1
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.28
+--- #YAML:1.0
+name:                Postgres-Handler-HTML
+version:             1
+abstract:            HTML Component for PostgreSQL data.
+license:             ~
+author:              
+    - Cyber Sprocket Labs <info@cybersprocket.com>
+generated_by:        ExtUtils::MakeMaker version 6.44
+distribution_type:   module
+requires:     
+    Postgres::Handler:             0
+    Test::More:                    0
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
+    version: 1.3
